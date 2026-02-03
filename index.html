@@ -1,103 +1,73 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Valentine Wall ❤️</title>
 
 <style>
-html, body {
+body {
   margin: 0;
-  font-family: system-ui, sans-serif;
-  background: linear-gradient(135deg, #ff2a68, #ff4d6d, #ff8fa3);
+  font-family: system-ui;
+  background: linear-gradient(135deg,#ff2a68,#ff4d6d,#ff8fa3);
   min-height: 100vh;
   color: white;
 }
-
 #wall {
   padding: 20px;
-  padding-bottom: 110px;
+  padding-bottom: 120px;
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  grid-template-columns: repeat(auto-fill,minmax(220px,1fr));
   gap: 16px;
 }
-
 .card {
-  background: rgba(255,255,255,0.18);
+  background: rgba(255,255,255,.2);
   backdrop-filter: blur(10px);
-  border-radius: 22px;
-  padding: 16px;
-  box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+  border-radius: 20px;
+  padding: 14px;
 }
-
-.card h3 {
-  margin: 0 0 6px;
-  font-size: 16px;
-}
-
-.card p {
-  margin: 0;
-  font-size: 14px;
-}
-
 .add-btn {
   position: fixed;
   bottom: 20px;
   left: 50%;
   transform: translateX(-50%);
-  width: 68px;
-  height: 68px;
+  width: 70px;
+  height: 70px;
   border-radius: 50%;
   border: none;
-  font-size: 32px;
+  font-size: 30px;
   background: white;
   color: #ff2a68;
-  cursor: pointer;
-  box-shadow: 0 10px 30px rgba(0,0,0,0.25);
 }
-
 .modal {
   position: fixed;
   inset: 0;
-  background: rgba(0,0,0,0.45);
+  background: rgba(0,0,0,.45);
   display: none;
   align-items: center;
   justify-content: center;
 }
-
 .modal-content {
   background: white;
   color: black;
   padding: 20px;
   border-radius: 18px;
   width: 90%;
-  max-width: 420px;
+  max-width: 400px;
 }
-
-.modal-content input,
-.modal-content textarea {
+input, textarea {
   width: 100%;
   margin-bottom: 10px;
   padding: 10px;
   border-radius: 10px;
-  border: 1px solid #ccc;
-  font-size: 14px;
 }
-
-.modal-content textarea {
-  resize: none;
-  height: 90px;
-}
-
-.modal-content button {
+button.send {
   width: 100%;
   padding: 12px;
   background: #ff2a68;
   color: white;
   border: none;
   border-radius: 12px;
-  font-size: 15px;
-  cursor: pointer;
 }
 </style>
 </head>
@@ -105,7 +75,6 @@ html, body {
 <body>
 
 <div id="wall"></div>
-
 <button class="add-btn" onclick="openModal()">＋❤️</button>
 
 <div class="modal" id="modal">
@@ -113,12 +82,12 @@ html, body {
     <input id="from" placeholder="Твоё имя">
     <input id="to" placeholder="Имя валентина">
     <textarea id="message" placeholder="Сообщение"></textarea>
-    <button onclick="send()">Отправить</button>
+    <button class="send" onclick="send()">Отправить</button>
   </div>
 </div>
 
 <script>
-const API_URL = "https://script.google.com/macros/s/AKfycbyVDzYGHxF32OjB9pfWoKpNAuf_ooCDRLFt_Y2-3WTiDQMIKBqD3lB6Rpo_02dhGX9Z/exec";
+const API = "https://script.google.com/macros/s/AKfycbyVDzYGHxF32OjB9pfWoKpNAuf_ooCDRLFt_Y2-3WTiDQMIKBqD3lB6Rpo_02dhGX9Z/exec";
 
 function openModal() {
   modal.style.display = "flex";
@@ -128,49 +97,42 @@ modal.onclick = e => {
   if (e.target === modal) modal.style.display = "none";
 };
 
-// JSONP загрузка
 function load() {
-  const old = document.getElementById("jsonp");
-  if (old) old.remove();
-
-  const script = document.createElement("script");
-  script.id = "jsonp";
-  script.src = API_URL + "?action=list&callback=render";
-  document.body.appendChild(script);
+  const s = document.createElement("script");
+  s.src = API + "?action=list&callback=render";
+  document.body.appendChild(s);
 }
 
 function render(data) {
   wall.innerHTML = "";
-
   data.reverse().forEach(v => {
-    const div = document.createElement("div");
-    div.className = "card";
-    div.innerHTML = `
-      <h3>❤️ ${v.from} → ${v.to}</h3>
-      <p>${v.message}</p>
+    wall.innerHTML += `
+      <div class="card">
+        <b>❤️ ${v.from} → ${v.to}</b>
+        <div>${v.message}</div>
+      </div>
     `;
-    wall.appendChild(div);
   });
 }
 
-// POST работает без CORS
-async function send() {
+function send() {
   if (!from.value || !to.value || !message.value) return;
 
-  await fetch(API_URL, {
-    method: "POST",
-    body: JSON.stringify({
-      from: from.value,
-      to: to.value,
-      message: message.value
-    })
-  });
+  const s = document.createElement("script");
+  s.src =
+    API +
+    "?action=add" +
+    "&from=" + encodeURIComponent(from.value) +
+    "&to=" + encodeURIComponent(to.value) +
+    "&message=" + encodeURIComponent(message.value) +
+    "&callback=afterSend";
 
+  document.body.appendChild(s);
+}
+
+function afterSend() {
   modal.style.display = "none";
-  from.value = "";
-  to.value = "";
-  message.value = "";
-
+  from.value = to.value = message.value = "";
   load();
 }
 
