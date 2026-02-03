@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Valentine Wall ❤️</title>
+
+<style>
+html, body {
+  margin: 0;
+  font-family: system-ui, sans-serif;
+  background: linear-gradient(135deg, #ff4d6d, #ff758f, #ff8fa3);
+  min-height: 100vh;
+  color: white;
+}
+
+#wall {
+  padding: 20px;
+  padding-bottom: 100px;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 16px;
+}
+
+.card {
+  background: rgba(255,255,255,0.15);
+  backdrop-filter: blur(8px);
+  border-radius: 20px;
+  padding: 16px;
+}
+
+.card h3 {
+  margin: 0 0 6px;
+}
+
+.add-btn {
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  border: none;
+  font-size: 30px;
+  background: white;
+  color: #ff4d6d;
+  cursor: pointer;
+}
+
+.modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.4);
+  display: none;
+  align-items: center;
+  justify-content: center;
+}
+
+.modal-content {
+  background: white;
+  color: black;
+  padding: 20px;
+  border-radius: 16px;
+  width: 90%;
+  max-width: 400px;
+}
+
+.modal-content input,
+.modal-content textarea {
+  width: 100%;
+  margin-bottom: 10px;
+  padding: 8px;
+  border-radius: 8px;
+  border: 1px solid #ccc;
+}
+
+.modal-content button {
+  width: 100%;
+  padding: 10px;
+  background: #ff4d6d;
+  color: white;
+  border: none;
+  border-radius: 10px;
+}
+</style>
+</head>
+
+<body>
+
+<div id="wall"></div>
+
+<button class="add-btn" onclick="openModal()">＋❤️</button>
+
+<div class="modal" id="modal">
+  <div class="modal-content">
+    <input id="from" placeholder="Твоё имя">
+    <input id="to" placeholder="Имя валентина">
+    <textarea id="message" placeholder="Сообщение"></textarea>
+    <button onclick="send()">Отправить</button>
+  </div>
+</div>
+
+<script>
+const API_URL = "PASTE_YOUR_APPS_SCRIPT_URL_HERE";
+
+function openModal() {
+  document.getElementById("modal").style.display = "flex";
+}
+
+document.getElementById("modal").onclick = e => {
+  if (e.target.id === "modal") e.target.style.display = "none";
+};
+
+async function load() {
+  const res = await fetch(API_URL);
+  const data = await res.json();
+
+  const wall = document.getElementById("wall");
+  wall.innerHTML = "";
+
+  data.reverse().forEach(v => {
+    const div = document.createElement("div");
+    div.className = "card";
+    div.innerHTML = `
+      <h3>❤️ ${v.from} → ${v.to}</h3>
+      <p>${v.message}</p>
+    `;
+    wall.appendChild(div);
+  });
+}
+
+async function send() {
+  const body = {
+    from: from.value,
+    to: to.value,
+    message: message.value
+  };
+
+  await fetch(API_URL, {
+    method: "POST",
+    body: JSON.stringify(body)
+  });
+
+  modal.style.display = "none";
+  from.value = to.value = message.value = "";
+  load();
+}
+
+load();
+</script>
+
+</body>
+</html>
