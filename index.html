@@ -9,28 +9,35 @@
 html, body {
   margin: 0;
   font-family: system-ui, sans-serif;
-  background: linear-gradient(135deg, #ff4d6d, #ff758f, #ff8fa3);
+  background: linear-gradient(135deg, #ff2a68, #ff4d6d, #ff8fa3);
   min-height: 100vh;
   color: white;
 }
 
 #wall {
   padding: 20px;
-  padding-bottom: 100px;
+  padding-bottom: 110px;
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
   gap: 16px;
 }
 
 .card {
-  background: rgba(255,255,255,0.15);
-  backdrop-filter: blur(8px);
-  border-radius: 20px;
+  background: rgba(255,255,255,0.18);
+  backdrop-filter: blur(10px);
+  border-radius: 22px;
   padding: 16px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.15);
 }
 
 .card h3 {
   margin: 0 0 6px;
+  font-size: 16px;
+}
+
+.card p {
+  margin: 0;
+  font-size: 14px;
 }
 
 .add-btn {
@@ -38,20 +45,21 @@ html, body {
   bottom: 20px;
   left: 50%;
   transform: translateX(-50%);
-  width: 64px;
-  height: 64px;
+  width: 68px;
+  height: 68px;
   border-radius: 50%;
   border: none;
-  font-size: 30px;
+  font-size: 32px;
   background: white;
-  color: #ff4d6d;
+  color: #ff2a68;
   cursor: pointer;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.25);
 }
 
 .modal {
   position: fixed;
   inset: 0;
-  background: rgba(0,0,0,0.4);
+  background: rgba(0,0,0,0.45);
   display: none;
   align-items: center;
   justify-content: center;
@@ -61,27 +69,35 @@ html, body {
   background: white;
   color: black;
   padding: 20px;
-  border-radius: 16px;
+  border-radius: 18px;
   width: 90%;
-  max-width: 400px;
+  max-width: 420px;
 }
 
 .modal-content input,
 .modal-content textarea {
   width: 100%;
   margin-bottom: 10px;
-  padding: 8px;
-  border-radius: 8px;
+  padding: 10px;
+  border-radius: 10px;
   border: 1px solid #ccc;
+  font-size: 14px;
+}
+
+.modal-content textarea {
+  resize: none;
+  height: 90px;
 }
 
 .modal-content button {
   width: 100%;
-  padding: 10px;
-  background: #ff4d6d;
+  padding: 12px;
+  background: #ff2a68;
   color: white;
   border: none;
-  border-radius: 10px;
+  border-radius: 12px;
+  font-size: 15px;
+  cursor: pointer;
 }
 </style>
 </head>
@@ -105,18 +121,25 @@ html, body {
 const API_URL = "https://script.google.com/macros/s/AKfycbyVDzYGHxF32OjB9pfWoKpNAuf_ooCDRLFt_Y2-3WTiDQMIKBqD3lB6Rpo_02dhGX9Z/exec";
 
 function openModal() {
-  document.getElementById("modal").style.display = "flex";
+  modal.style.display = "flex";
 }
 
-document.getElementById("modal").onclick = e => {
-  if (e.target.id === "modal") e.target.style.display = "none";
+modal.onclick = e => {
+  if (e.target === modal) modal.style.display = "none";
 };
 
-async function load() {
-  const res = await fetch(API_URL);
-  const data = await res.json();
+// JSONP загрузка
+function load() {
+  const old = document.getElementById("jsonp");
+  if (old) old.remove();
 
-  const wall = document.getElementById("wall");
+  const script = document.createElement("script");
+  script.id = "jsonp";
+  script.src = API_URL + "?action=list&callback=render";
+  document.body.appendChild(script);
+}
+
+function render(data) {
   wall.innerHTML = "";
 
   data.reverse().forEach(v => {
@@ -130,20 +153,24 @@ async function load() {
   });
 }
 
+// POST работает без CORS
 async function send() {
-  const body = {
-    from: from.value,
-    to: to.value,
-    message: message.value
-  };
+  if (!from.value || !to.value || !message.value) return;
 
   await fetch(API_URL, {
     method: "POST",
-    body: JSON.stringify(body)
+    body: JSON.stringify({
+      from: from.value,
+      to: to.value,
+      message: message.value
+    })
   });
 
   modal.style.display = "none";
-  from.value = to.value = message.value = "";
+  from.value = "";
+  to.value = "";
+  message.value = "";
+
   load();
 }
 
