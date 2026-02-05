@@ -29,6 +29,10 @@
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 
 <script>
+  function cb() {}
+</script>
+  
+<script>
   /* ================= CONFIG ================= */
   const API_URL = "https://script.google.com/macros/s/AKfycbzSHxYk5J_1-fE_ydO-9RaTCKJ7DR9EWJgDl2qEkupZymw-916-DV5mYDgDG2bP7xno7A/exec";
   /* ========================================== */
@@ -60,7 +64,7 @@
   /* ===== SAVE POINT (JSONP) ===== */
   function savePoint(lat, lng) {
     const s = document.createElement("script");
-    s.src = API_URL + `?action=add&lat=${lat}&lng=${lng}`;
+    s.src = API_URL + `?action=add&lat=${lat}&lng=${lng}&callback=cb`;
     document.body.appendChild(s);
   }
 
