@@ -1,143 +1,58 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html>
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Valentine Wall ❤️</title>
-
-<style>
-body {
-  margin: 0;
-  font-family: system-ui;
-  background: linear-gradient(135deg,#ff2a68,#ff4d6d,#ff8fa3);
-  min-height: 100vh;
-  color: white;
-}
-#wall {
-  padding: 20px;
-  padding-bottom: 120px;
-  display: grid;
-  grid-template-columns: repeat(auto-fill,minmax(220px,1fr));
-  gap: 16px;
-}
-.card {
-  background: rgba(255,255,255,.2);
-  backdrop-filter: blur(10px);
-  border-radius: 20px;
-  padding: 14px;
-}
-.add-btn {
-  position: fixed;
-  bottom: 20px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 70px;
-  height: 70px;
-  border-radius: 50%;
-  border: none;
-  font-size: 30px;
-  background: white;
-  color: #ff2a68;
-}
-.modal {
-  position: fixed;
-  inset: 0;
-  background: rgba(0,0,0,.45);
-  display: none;
-  align-items: center;
-  justify-content: center;
-}
-.modal-content {
-  background: white;
-  color: black;
-  padding: 20px;
-  border-radius: 18px;
-  width: 90%;
-  max-width: 400px;
-}
-input, textarea {
-  width: 100%;
-  margin-bottom: 10px;
-  padding: 10px;
-  border-radius: 10px;
-}
-button.send {
-  width: 100%;
-  padding: 12px;
-  background: #ff2a68;
-  color: white;
-  border: none;
-  border-radius: 12px;
-}
-</style>
+  <meta charset="utf-8" />
+  <title>World Point</title>
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet/dist/leaflet.css"
+  />
+  <style>
+    html, body, #map {
+      height: 100%;
+      margin: 0;
+    }
+  </style>
 </head>
-
 <body>
+  <div id="map"></div>
 
-<div id="wall"></div>
-<button class="add-btn" onclick="openModal()">＋❤️</button>
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <script>
+    const API = "https://script.google.com/macros/s/AKfycbzSHxYk5J_1-fE_ydO-9RaTCKJ7DR9EWJgDl2qEkupZymw-916-DV5mYDgDG2bP7xno7A/exec";
 
-<div class="modal" id="modal">
-  <div class="modal-content">
-    <input id="from" placeholder="Твоё имя">
-    <input id="to" placeholder="Имя валентина">
-    <textarea id="message" placeholder="Сообщение"></textarea>
-    <button class="send" onclick="send()">Отправить</button>
-  </div>
-</div>
+    const map = L.map("map").setView([20, 0], 2);
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      maxZoom: 18,
+    }).addTo(map);
 
-<script>
-const API = "https://script.google.com/macros/s/AKfycbyVDzYGHxF32OjB9pfWoKpNAuf_ooCDRLFt_Y2-3WTiDQMIKBqD3lB6Rpo_02dhGX9Z/exec";
+    let locked = localStorage.getItem("locked");
 
-function openModal() {
-  modal.style.display = "flex";
-}
+    // загрузить все точки
+    fetch(API + "?action=get")
+      .then(r => r.json())
+      .then(points => {
+        points.forEach(p => {
+          L.marker([p[0], p[1]]).addTo(map);
+        });
+      });
 
-modal.onclick = e => {
-  if (e.target === modal) modal.style.display = "none";
-};
+    // клик по карте
+    map.on("click", e => {
+      if (locked) return;
 
-function load() {
-  const s = document.createElement("script");
-  s.src = API + "?action=list&callback=render";
-  document.body.appendChild(s);
-}
+      const { lat, lng } = e.latlng;
 
-function render(data) {
-  wall.innerHTML = "";
-  data.reverse().forEach(v => {
-    wall.innerHTML += `
-      <div class="card">
-        <b>❤️ ${v.from} → ${v.to}</b>
-        <div>${v.message}</div>
-      </div>
-    `;
-  });
-}
+      L.marker([lat, lng]).addTo(map);
 
-function send() {
-  if (!from.value || !to.value || !message.value) return;
+      fetch(
+        API +
+          `?action=add&lat=${lat}&lng=${lng}`
+      );
 
-  const s = document.createElement("script");
-  s.src =
-    API +
-    "?action=add" +
-    "&from=" + encodeURIComponent(from.value) +
-    "&to=" + encodeURIComponent(to.value) +
-    "&message=" + encodeURIComponent(message.value) +
-    "&callback=afterSend";
-
-  document.body.appendChild(s);
-}
-
-function afterSend() {
-  modal.style.display = "none";
-  from.value = to.value = message.value = "";
-  load();
-}
-
-load();
-</script>
-
+      localStorage.setItem("locked", "1");
+      locked = true;
+    });
+  </script>
 </body>
 </html>
