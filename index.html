@@ -1,88 +1,279 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <title>World Point</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GNMathtify</title>
 
-  <!-- Leaflet -->
-  <link
-    rel="stylesheet"
-    href="https://unpkg.com/leaflet/dist/leaflet.css"
-  />
+<style>
+:root {
+    --green: #1db954;
+    --dark: #121212;
+    --light-dark: #181818;
+    --gray: #b3b3b3;
+}
 
-  <style>
-    html, body, #map {
-      width: 100%;
-      height: 100%;
-      margin: 0;
-    }
-    body {
-      cursor: crosshair;
-    }
-  </style>
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: Arial, sans-serif;
+}
+
+body {
+    background: var(--dark);
+    color: white;
+    display: flex;
+    height: 100vh;
+    overflow: hidden;
+}
+
+/* Sidebar */
+.sidebar {
+    width: 220px;
+    background: #000;
+    padding: 20px;
+}
+
+.logo {
+    font-size: 22px;
+    font-weight: bold;
+    color: var(--green);
+    margin-bottom: 30px;
+}
+
+.sidebar button {
+    background: none;
+    border: none;
+    color: var(--gray);
+    display: block;
+    margin-bottom: 15px;
+    cursor: pointer;
+    font-size: 15px;
+}
+
+.sidebar button:hover {
+    color: white;
+}
+
+/* Main */
+.main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.header {
+    padding: 20px;
+    background: var(--light-dark);
+    display: flex;
+}
+
+.search-input {
+    width: 100%;
+    padding: 10px;
+    border-radius: 20px;
+    border: none;
+    outline: none;
+}
+
+.content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 20px;
+}
+
+.track {
+    display: flex;
+    align-items: center;
+    background: #181818;
+    padding: 10px;
+    margin-bottom: 10px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: 0.2s;
+}
+
+.track:hover {
+    background: #282828;
+}
+
+.track img {
+    width: 50px;
+    height: 50px;
+    border-radius: 6px;
+    margin-right: 15px;
+}
+
+.track-info {
+    flex: 1;
+}
+
+.track-title {
+    font-weight: bold;
+}
+
+.track-artist {
+    font-size: 13px;
+    color: var(--gray);
+}
+
+/* Player */
+.player {
+    height: 90px;
+    background: #000;
+    display: flex;
+    align-items: center;
+    padding: 10px 20px;
+}
+
+.player img {
+    width: 60px;
+    height: 60px;
+    border-radius: 6px;
+    margin-right: 15px;
+}
+
+.player-controls {
+    flex: 1;
+}
+
+.controls {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+button.control-btn {
+    background: var(--green);
+    border: none;
+    padding: 8px 14px;
+    border-radius: 20px;
+    cursor: pointer;
+    color: black;
+    font-weight: bold;
+}
+
+.progress {
+    width: 100%;
+    height: 5px;
+    background: #333;
+    margin-top: 10px;
+    border-radius: 5px;
+    overflow: hidden;
+}
+
+.progress-bar {
+    height: 100%;
+    width: 0%;
+    background: var(--green);
+}
+</style>
 </head>
 <body>
 
-<div id="map"></div>
+<div class="sidebar">
+    <div class="logo">GNMathtify</div>
+    <button onclick="loadTrending()">Trending</button>
+</div>
 
-<!-- Leaflet JS -->
-<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+<div class="main">
+    <div class="header">
+        <input type="text" class="search-input" placeholder="Search for tracks..." onkeypress="handleSearch(event)">
+    </div>
+
+    <div class="content" id="tracks"></div>
+
+    <div class="player">
+        <img id="player-cover" src="">
+        <div class="player-controls">
+            <div id="player-title">Nothing Playing</div>
+            <div class="controls">
+                <button class="control-btn" onclick="togglePlay()">Play / Pause</button>
+            </div>
+            <div class="progress">
+                <div class="progress-bar" id="progress"></div>
+            </div>
+        </div>
+    </div>
+</div>
 
 <script>
-  function cb() {}
-</script>
-  
-<script>
-  /* ================= CONFIG ================= */
-  const API_URL = "https://script.google.com/macros/s/AKfycbw--oVxd3SEI94d83PMmV-DDwVJwDNOaP13XYkg3Fr_siqC7BituPAZxHnungrezDqtYQ/exec";
-  /* ========================================== */
+const API = "https://discoveryprovider.audius.co/v1";
+const APP = "GNMathtifyApp";
 
-  const map = L.map("map", {
-    worldCopyJump: true
-  }).setView([20, 0], 2);
+let currentTrack = null;
+let audio = new Audio();
+let currentList = [];
+let currentIndex = 0;
 
-  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-    maxZoom: 18,
-    attribution: "© OpenStreetMap"
-  }).addTo(map);
+async function loadTrending() {
+    const res = await fetch(`${API}/tracks/trending?app_name=${APP}`);
+    const data = await res.json();
+    displayTracks(data.data);
+}
 
-  let locked = localStorage.getItem("locked");
+async function searchTracks(query) {
+    const res = await fetch(`${API}/tracks/search?query=${query}&app_name=${APP}`);
+    const data = await res.json();
+    displayTracks(data.data);
+}
 
-  /* ===== LOAD ALL POINTS (JSONP) ===== */
-  function loadPoints(data) {
-    data.forEach(p => {
-      L.circleMarker([p[0], p[1]], {
-        radius: 6
-      }).addTo(map);
+function displayTracks(tracks) {
+    currentList = tracks;
+    const container = document.getElementById("tracks");
+    container.innerHTML = "";
+
+    tracks.forEach((track, index) => {
+        const div = document.createElement("div");
+        div.className = "track";
+        div.onclick = () => playTrack(index);
+
+        div.innerHTML = `
+            <img src="${track.artwork?.['150x150'] || ''}">
+            <div class="track-info">
+                <div class="track-title">${track.title}</div>
+                <div class="track-artist">${track.user.name}</div>
+            </div>
+        `;
+
+        container.appendChild(div);
     });
-  }
+}
 
-  const loadScript = document.createElement("script");
-  loadScript.src = API_URL + "?action=get&callback=loadPoints";
-  document.body.appendChild(loadScript);
+function playTrack(index) {
+    currentIndex = index;
+    currentTrack = currentList[index];
 
-  /* ===== SAVE POINT (JSONP) ===== */
-  function savePoint(lat, lng) {
-    const s = document.createElement("script");
-    s.src = API_URL + `?action=add&lat=${lat}&lng=${lng}&callback=cb`;
-    document.body.appendChild(s);
-  }
+    audio.src = `${API}/tracks/${currentTrack.id}/stream?app_name=${APP}`;
+    audio.play();
 
-  /* ===== CLICK LOGIC ===== */
-  map.on("click", e => {
-    if (locked) return;
+    document.getElementById("player-title").innerText =
+        currentTrack.title + " - " + currentTrack.user.name;
 
-    const { lat, lng } = e.latlng;
+    document.getElementById("player-cover").src =
+        currentTrack.artwork?.['150x150'] || '';
 
-    L.circleMarker([lat, lng], {
-      radius: 8
-    }).addTo(map);
+}
 
-    savePoint(lat, lng);
+function togglePlay() {
+    if (!audio.src) return;
+    if (audio.paused) audio.play();
+    else audio.pause();
+}
 
-    localStorage.setItem("locked", "1");
-    locked = true;
-  });
+audio.addEventListener("timeupdate", () => {
+    const percent = (audio.currentTime / audio.duration) * 100;
+    document.getElementById("progress").style.width = percent + "%";
+});
+
+function handleSearch(e) {
+    if (e.key === "Enter") {
+        searchTracks(e.target.value);
+    }
+}
+
+loadTrending();
 </script>
 
 </body>
