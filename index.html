@@ -199,13 +199,19 @@ button.control-btn {
 </div>
 
 <script>
-const API = "https://discoveryprovider.audius.co/v1";
+let API = null;
 const APP = "GNMathtifyApp";
 
-let currentTrack = null;
 let audio = new Audio();
 let currentList = [];
 let currentIndex = 0;
+
+async function initAPI() {
+    const res = await fetch("https://api.audius.co");
+    const data = await res.json();
+    API = data.data[0] + "/v1";
+    loadTrending();
+}
 
 async function loadTrending() {
     const res = await fetch(`${API}/tracks/trending?app_name=${APP}`);
@@ -243,23 +249,21 @@ function displayTracks(tracks) {
 
 function playTrack(index) {
     currentIndex = index;
-    currentTrack = currentList[index];
+    const track = currentList[index];
 
-    audio.src = `${API}/tracks/${currentTrack.id}/stream?app_name=${APP}`;
+    audio.src = `${API}/tracks/${track.id}/stream?app_name=${APP}`;
     audio.play();
 
     document.getElementById("player-title").innerText =
-        currentTrack.title + " - " + currentTrack.user.name;
+        track.title + " - " + track.user.name;
 
     document.getElementById("player-cover").src =
-        currentTrack.artwork?.['150x150'] || '';
-
+        track.artwork?.['150x150'] || '';
 }
 
 function togglePlay() {
     if (!audio.src) return;
-    if (audio.paused) audio.play();
-    else audio.pause();
+    audio.paused ? audio.play() : audio.pause();
 }
 
 audio.addEventListener("timeupdate", () => {
@@ -273,7 +277,8 @@ function handleSearch(e) {
     }
 }
 
-loadTrending();
+initAPI();
+
 </script>
 
 </body>
